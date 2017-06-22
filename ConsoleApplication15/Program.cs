@@ -22,7 +22,7 @@ namespace ConsoleApplication15
         
         static void Convert(string str)
         {
-            var split = new string[] { "&&", "||", "(", ")"};
+            var split = new string[] { "&&", "||"};
             var split2 = new string[] { ">=", "<=", "=", "!=" };
             var arr = str.Split(split, StringSplitOptions.RemoveEmptyEntries).ToList().Select(x=> x.Replace(" ", "")).Where(x=>x!="");
            
@@ -49,22 +49,72 @@ namespace ConsoleApplication15
                 var op = express.Remove(express.Length - arr2[1].Length);
                 op = op.Remove(0, arr2[0].Length);
                 sub.Op = op;
-               
+                if (sub.ParameterName[0] == '(')
+                {
+                    result.Push("(");
+                    sub.ParameterName=sub.ParameterName.Remove(0,1);
+                }
+                var flagEnd = false;
+                if (sub.ParameterValue[sub.ParameterValue.Length - 1] == ')')
+                {
+                    sub.ParameterValue = sub.ParameterValue.Remove(sub.ParameterValue.Length - 1);
+                    flagEnd = true;
+                }
                 result.Push(sub);
-
+                if(flagEnd)
+                    result.Push(")");
                 if (index2 < opOrder.Count)
                 {
                     var oper = opOrder[index2];
-                    result.Push(oper.Item2);
+                    var item2 = oper.Item2;
+                    result.Push(item2);
                 }
                 index2++;
             }
+            var result2 = new CustomExpressionTree();
+            while(result.Count>0)
+            {
+                result2.Push(result.Pop());
+            }
+            while (result2.Count>0)
+            {
+                var item = result2.Pop();
+                if(item is string)
+                Console.Write($"{item} ");
+                if (item is CustomExpression)
+                {
+                    var obj = (item as CustomExpression);
+                    Console.Write($"{obj.ParameterName}{obj.Op}{obj.ParameterValue} ");
+                }
+                    
+            }
+                
         }
         //"Age>=11 && Age<=12", "Name=A2", " Name=A1 || Name=A2"
 
+            static void Ex()
+        {
+            ParameterExpression param = Expression.Parameter(typeof(int));
+            MethodCallExpression methodCall = Expression.Call(typeof(Console).GetMethod("WriteLine", new Type[] { typeof(int) }), param);
+
+            Expression.Lambda<Action<int>>(methodCall, new ParameterExpression[] { param }).Compile()(100);
+
+        }
         static void Main(string[] args)
         {
-            Convert("Age>=11 && ( Age<=12 || Aage>=100) && (Name=A1 || Name=A2)");
+            Ex();
+            Console.Read();
+
+            try
+            {
+                Convert("( Age<=12 || Aage>=100) && (Name=A1 || Name=A2)");
+            }
+            catch(Exception ex)
+            {
+
+            }
+            
+            Console.Read();
             var list = new List<Test>();
             list.Add(new Test { Name = "A1", Age = 11, Score=89});
             list.Add(new Test { Name = "A4", Age = 11, Score = 96 });
