@@ -50,9 +50,8 @@ namespace ConsoleApplication15
         static Func<TObj, bool> Convert<TObj>(string whereStr) where TObj:class
         {
             var result = new CustomExpressionTree();
-            var opOrder = new List<Tuple<int, string>>();
 
-            result = ProcessWhereStr(whereStr, opOrder);
+            result = ProcessWhereStr(whereStr);
             var result2 = SwapExp(result);
 
             var pe = Expression.Parameter(typeof(TObj), "x");
@@ -88,19 +87,20 @@ namespace ConsoleApplication15
             return expressionList;
         }
 
-        static CustomExpressionTree ProcessWhereStr(string whereStr, List<Tuple<int, string>> opOrder)
+        static CustomExpressionTree ProcessWhereStr(string whereStr)
         {
             var result = new CustomExpressionTree();
+            var opOrder = new List<Tuple<int, string>>();
             var index2 = 0;
-            var singleExpresses = whereStr.Split(junctionSplit, StringSplitOptions.RemoveEmptyEntries).ToList().Select(x => x.Replace(" ", "")).Where(x => x != "");
+            
             GetJunctionSort(whereStr, opOrder);
-            opOrder = opOrder.OrderBy(x => x.Item1).ToList();
+            var singleExps = whereStr.Split(junctionSplit, StringSplitOptions.RemoveEmptyEntries).ToList().Select(x => x.Replace(" ", "")).Where(x => x != "");
 
-            foreach (var express in singleExpresses)
+            foreach (var expression in singleExps)
             {
-                var singleExp = express.Split(OperSplit, StringSplitOptions.RemoveEmptyEntries).ToList().Select(x => x.Replace(" ", "")).ToArray();
+                var singleExp = expression.Split(OperSplit, StringSplitOptions.RemoveEmptyEntries).ToList().Select(x => x.Replace(" ", "")).ToArray();
                 var subExp = new CustomExpression { ParameterName = singleExp[0], ParameterValue = singleExp[1] };
-                var op = express.Remove(express.Length - singleExp[1].Length); //tail
+                var op = expression.Remove(expression.Length - singleExp[1].Length); //tail
                 op = op.Remove(0, singleExp[0].Length); // header
                 subExp.Op = op; //operation in middle
 
@@ -236,6 +236,7 @@ namespace ConsoleApplication15
                     opOrder.Add(tup);
                 } while (index < whereStr.Length);
             }
+            opOrder = opOrder.OrderBy(x => x.Item1).ToList();
         }
         static CustomExpressionTree SwapExp(CustomExpressionTree result)
         {
