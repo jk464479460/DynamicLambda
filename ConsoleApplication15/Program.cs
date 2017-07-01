@@ -81,7 +81,7 @@ namespace ConsoleApplication15
             while (flagArr.Count > 0)
             {
                 var lastFlag = flagArr[flagArr.Count - 1];
-                ConstructConjExp(lastFlag, expressionList);
+                CompositeExpByConj(lastFlag, expressionList);
                 flagArr.RemoveAt(flagArr.Count - 1);
             }
             return expressionList;
@@ -90,10 +90,10 @@ namespace ConsoleApplication15
         static CustomExpressionTree ProcessWhereStr(string whereStr)
         {
             var result = new CustomExpressionTree();
-            var opOrder = new List<Tuple<int, string>>();
+            var junctionIndex = new List<Tuple<int, string>>();
             var index2 = 0;
             
-            GetJunctionSort(whereStr, opOrder);
+            GetJunctionSort(whereStr, junctionIndex);
             var singleExps = whereStr.Split(junctionSplit, StringSplitOptions.RemoveEmptyEntries).ToList().Select(x => x.Replace(" ", "")).Where(x => x != "");
 
             foreach (var expression in singleExps)
@@ -105,9 +105,9 @@ namespace ConsoleApplication15
                 subExp.Op = op; //operation in middle
 
                 ProcessSubExp(subExp, result);
-                if (index2 < opOrder.Count)
+                if (index2 < junctionIndex.Count)
                 {
-                    var oper = opOrder[index2];
+                    var oper = junctionIndex[index2];
                     var item2 = oper.Item2;
                     result.Push(item2);
                 }
@@ -118,16 +118,15 @@ namespace ConsoleApplication15
 
         static void ProcessExp<TObj>(Expression pe, CustomExpression currExpress, IList<int> flagArr, IList<BinaryExpression> expressionList)
         {
-            var lastFlag = (int)ConstJunction.Flag.NULL;
-            if (flagArr.Count-1>=0)
-                lastFlag = flagArr[flagArr.Count - 1];
-
-            var subLeft = Expression.Property(pe, typeof(TObj).GetProperty(currExpress.ParameterName));
+            var leftPart = Expression.Property(pe, typeof(TObj).GetProperty(currExpress.ParameterName));
             var typ = typeof(TObj).GetProperty(currExpress.ParameterName).PropertyType;
 
-            var condition = Expression.Constant(System.Convert.ChangeType(currExpress.ParameterValue, typ), typ);
-            ConstructOperExp(currExpress, expressionList, subLeft, condition);
-           
+            var constCondition = Expression.Constant(System.Convert.ChangeType(currExpress.ParameterValue, typ), typ);
+            CreateExpByOp(currExpress, expressionList, leftPart, constCondition);
+
+            var lastFlag = (int)ConstJunction.Flag.NULL;
+            if (flagArr.Count - 1 >= 0)
+                lastFlag = flagArr[flagArr.Count - 1];
             if ( lastFlag!= (int)ConstJunction.Flag.NULL && lastFlag != (int)ConstJunction.Flag.Or && lastFlag != (int)ConstJunction.Flag.And)
                 flagArr.RemoveAt(flagArr.Count - 1);
         }
@@ -168,7 +167,7 @@ namespace ConsoleApplication15
             {
                 var lastFlag = flagArr[flagArr.Count - 1];
                 flagArr.RemoveAt(flagArr.Count - 1);
-                ConstructConjExp(lastFlag, expressionList);
+                CompositeExpByConj(lastFlag, expressionList);
             }
             else if (junctionSplit.Contains(stackContent.ToString()))
             {
@@ -184,7 +183,7 @@ namespace ConsoleApplication15
             }
         }
 
-        static void ConstructOperExp(CustomExpression currExpress, IList<BinaryExpression> expressionList, MemberExpression subLeft, ConstantExpression condition)
+        static void CreateExpByOp(CustomExpression currExpress, IList<BinaryExpression> expressionList, MemberExpression subLeft, ConstantExpression condition)
         {
             switch (currExpress.Op)
             {
@@ -202,7 +201,7 @@ namespace ConsoleApplication15
                     break;
             }
         }
-        static void ConstructConjExp(int lastFlag, IList<BinaryExpression> expressionList)
+        static void CompositeExpByConj(int lastFlag, IList<BinaryExpression> expressionList)
         {
             if (lastFlag == (int)ConstJunction.Flag.Or)
             {
@@ -222,7 +221,7 @@ namespace ConsoleApplication15
             }
         }
 
-        static void GetJunctionSort(string whereStr, List<Tuple<int, string>> opOrder)
+        static void GetJunctionSort(string whereStr, List<Tuple<int, string>> junctionIndex)
         {
             for (var i = 0; i < junctionSplit.Count(); i++)
             {
@@ -233,10 +232,10 @@ namespace ConsoleApplication15
                     if (index < 0) break;
                     Tuple<int, string> tup = new Tuple<int, string>(index, junctionSplit[i]);
                     index += junctionSplit[i].Length;
-                    opOrder.Add(tup);
+                    junctionIndex.Add(tup);
                 } while (index < whereStr.Length);
             }
-            opOrder = opOrder.OrderBy(x => x.Item1).ToList();
+            junctionIndex = junctionIndex.OrderBy(x => x.Item1).ToList();
         }
         static CustomExpressionTree SwapExp(CustomExpressionTree result)
         {
